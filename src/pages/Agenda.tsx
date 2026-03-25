@@ -38,7 +38,10 @@ export default function Agenda() {
         const localSessions = [...sessions];
         
         for (const event of events) {
-          if (event.description && event.description.includes('calendar.app.google/etwgXRcVKBeWSDgr5')) {
+          const isConsultaOnline = event.summary?.toLowerCase().includes('consulta online') || 
+                                   (event.description && event.description.includes('calendar.app.google'));
+          
+          if (isConsultaOnline) {
             const sessionExists = localSessions.some(s => s.google_event_id === event.id);
             if (!sessionExists) {
               // Extrair campos da descrição
@@ -56,7 +59,10 @@ export default function Agenda() {
               const extPhone = extractField('Telefone') || extractField('Celular');
               const extCpf = extractField('CPF');
 
-              const patientName = extName || event.summary.split(' e ')[0].split(' and ')[0].trim();
+              let fallbackName = event.summary.replace(/consulta online/i, '').replace(/[-:]/g, '').trim();
+              fallbackName = fallbackName || 'Paciente (Sem Nome)';
+              const patientName = extName || fallbackName.split(' e ')[0].split(' and ')[0].trim();
+              
               let patientToUse = localPatients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
               
               if (!patientToUse) {
