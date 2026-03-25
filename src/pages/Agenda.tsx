@@ -79,10 +79,6 @@ export default function Agenda() {
               }
               
               if (patientToUse) {
-                let sessionNotes = '';
-                if (event.hangoutLink) sessionNotes += `Link do Google Meet: ${event.hangoutLink}\n`;
-                if (event.htmlLink) sessionNotes += `Link do Google Calendar: ${event.htmlLink}\n`;
-
                 const newSession = await createSession({
                   patient_id: patientToUse.id,
                   date_time: event.start.dateTime,
@@ -90,7 +86,8 @@ export default function Agenda() {
                   status: 'agendada',
                   google_event_id: event.id,
                   value: settings.default_session_value || 0,
-                  notes: sessionNotes.trim() || undefined
+                  meet_link: event.hangoutLink || undefined,
+                  calendar_link: event.htmlLink || undefined
                 });
                 localSessions.push(newSession);
                 hasNewInternalSessions = true;
@@ -229,7 +226,7 @@ export default function Agenda() {
               <div className="table-container" style={{ border: 'none' }}>
                 <table className="hidden-mobile">
                   <thead>
-                    <tr><th>Data e Hora</th><th>Paciente</th><th>Duração</th><th>Valor</th><th>Status</th><th></th></tr>
+                    <tr><th>Data e Hora</th><th>Paciente</th><th>Duração</th><th>Status</th><th>Ações</th><th></th></tr>
                   </thead>
                   <tbody>
                     {monthSessions.map(s => (
@@ -239,8 +236,16 @@ export default function Agenda() {
                           <div style={{ fontWeight: 600 }}>{(s as any).patient?.name || '—'}</div>
                         </td>
                         <td>{s.duration_min} min</td>
-                        <td>{s.value ? formatCurrency(s.value) : '—'}</td>
                         <td><span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span></td>
+                        <td>
+                          {s.meet_link ? (
+                            <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                              Entrar na Sala
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
                         <td>
                           <select className="form-select" style={{ padding: '4px 8px', fontSize: 12 }}
                             value={s.status} onClick={e => e.stopPropagation()}
@@ -266,8 +271,13 @@ export default function Agenda() {
                       </div>
                       <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{(s as any).patient?.name || '—'}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-                        <div>{s.duration_min} min • {s.value ? formatCurrency(s.value) : '—'}</div>
-                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px' }}>Ver detalhes</button>
+                        <div>{s.duration_min} min</div>
+                        {s.meet_link && (
+                          <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                            Entrar na Sala
+                          </a>
+                        )}
+                        {!s.meet_link && <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px' }}>Ver detalhes</button>}
                       </div>
                     </div>
                   ))}
@@ -302,6 +312,13 @@ export default function Agenda() {
                       <span><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {format(parseISO(s.date_time), 'HH:mm')} — {s.duration_min}min</span>
                       {s.value && <span>{formatCurrency(s.value)}</span>}
                     </div>
+                    {s.meet_link && (
+                      <div style={{ marginTop: 6 }}>
+                        <a href={s.meet_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                          Entrar na Sala
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
                   <button className="btn btn-ghost btn-sm" onClick={() => { setEditSession(s); setShowModal(true); }}>Editar</button>

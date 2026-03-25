@@ -56,6 +56,8 @@ export interface Session {
   duration_min: number;
   status: SessionStatus;
   google_event_id?: string;
+  meet_link?: string;
+  calendar_link?: string;
   value?: number;
   notes?: string;
   created_at: string;
