@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, DollarSign, Settings, Brain } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, DollarSign, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getInitials } from '../../lib/utils';
 
@@ -16,12 +16,8 @@ export default function Sidebar() {
 
   return (
     <div className="sidebar">
-      <div className="sidebar-logo">
-        <div className="logo-icon">
-          <Brain size={18} />
-        </div>
-        <div className="clinic-name">{settings.analyst_name}</div>
-        <div className="clinic-sub">{settings.clinic_name}</div>
+      <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'center', padding: '24px 20px' }}>
+        <img src="/logo.png" alt="Logo Aline Herts" style={{ height: 'auto', width: '100%', maxWidth: '160px', display: 'block' }} />
       </div>
 
       <nav className="sidebar-nav">
