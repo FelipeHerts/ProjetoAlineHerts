@@ -18,11 +18,12 @@ export default function Agenda() {
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
   const { settings } = useApp();
-  const { patients, createPatient } = usePatients();
-  const { sessions, refetch, updateSession, createSession } = useSessions();
+  const { patients, createPatient, loading: patientsLoading } = usePatients();
+  const { sessions, refetch, updateSession, createSession, loading: sessionsLoading } = useSessions();
 
   const fetchGoogleEvents = async () => {
-    if (!settings.google_calendar_connected || !settings.google_calendar_id) return;
+    if (syncing || !settings.google_calendar_connected || !settings.google_calendar_id) return;
+    if (patientsLoading || sessionsLoading) return;
     setSyncing(true);
     try {
       await loadGoogleScripts();
@@ -110,8 +111,10 @@ export default function Agenda() {
   };
 
   useEffect(() => {
-    fetchGoogleEvents();
-  }, [currentDate, settings.google_calendar_connected]);
+    if (!patientsLoading && !sessionsLoading) {
+      fetchGoogleEvents();
+    }
+  }, [currentDate, settings.google_calendar_connected, patientsLoading, sessionsLoading]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
