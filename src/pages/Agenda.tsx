@@ -9,6 +9,37 @@ import { sessionStatusClass, sessionStatusLabel, formatCurrency } from '../lib/u
 import SessionModal from '../components/agenda/SessionModal';
 import type { Session, GoogleEvent } from '../types';
 
+const parseGoogleDescription = (desc: string) => {
+  if (!desc) return {};
+  const text = desc.replace(/<br\s*\/?>/gi, '\n').replace(/<\/?[^>]+(>|$)/g, "");
+  const result: { name?: string; email?: string; phone?: string; cpf?: string } = {};
+
+  const reservadoMatch = text.match(/Reservado [Pp]or:\s*([^\n]+)/);
+  if (reservadoMatch) {
+    const rawName = reservadoMatch[1].trim();
+    const emailMatch = rawName.match(/(.+?)\s*\(([^)]+)\)$/);
+    if (emailMatch) {
+      result.name = emailMatch[1].trim();
+      result.email = emailMatch[2].trim();
+    } else {
+      result.name = rawName;
+    }
+  }
+
+  if (!result.email) {
+    const fallbackEmail = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (fallbackEmail) result.email = fallbackEmail[0];
+  }
+  
+  const phoneMatch = text.match(/(?:Telefone|Celular|WhatsApp|Phone):\s*([^\n]+)/i);
+  if (phoneMatch) result.phone = phoneMatch[1].trim();
+  
+  const cpfMatch = text.match(/CPF:\s*([^\n]+)/i);
+  if (cpfMatch) result.cpf = cpfMatch[1].trim();
+
+  return result;
+};
+
 export default function Agenda() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -19,7 +50,7 @@ export default function Agenda() {
   const [syncing, setSyncing] = useState(false);
   const { settings } = useApp();
   const { sessions, refetch, updateSession, createSession } = useSessions();
-  const { patients, createPatient } = usePatients();
+  const { patients, createPatient, updatePatient } = usePatients();
 
   const fetchGoogleEvents = async () => {
     if (!settings.google_calendar_connected || !settings.google_calendar_id) return;
@@ -36,18 +67,41 @@ export default function Agenda() {
           const exists = sessions.find(s => s.google_event_id === e.id);
           if (!exists) {
             hasNewData = true;
-            const patientName = e.summary ? e.summary.trim() : 'Sem Título';
-            let patient = patients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
+            const pData = parseGoogleDescription(e.description || '');
+            const fallbackName = e.summary ? e.summary.trim() : 'Sem Título';
+            const cleanFallbackName = fallbackName.replace(/^(Consulta|Sessão)\s+(com\s+)?/i, '').trim();
+            const patientName = pData.name || cleanFallbackName;
+
+            let patient = patients.find(p => 
+              p.name.toLowerCase() === patientName.toLowerCase() || 
+              (pData.email && p.email?.toLowerCase() === pData.email.toLowerCase()) ||
+              (pData.cpf && p.cpf === pData.cpf)
+            );
             
             if (!patient) {
                try {
                  patient = await createPatient({
                    name: patientName,
                    status: 'ativo',
+                   email: pData.email || '',
+                   phone: pData.phone || '',
+                   cpf: pData.cpf || ''
                  });
                } catch (err) {
                  console.error('Failed to create patient from Google Event', err);
                  continue;
+               }
+            } else {
+               const updates: any = {};
+               if (!patient.email && pData.email) updates.email = pData.email;
+               if (!patient.phone && pData.phone) updates.phone = pData.phone;
+               if (!patient.cpf && pData.cpf) updates.cpf = pData.cpf;
+               if (Object.keys(updates).length > 0) {
+                 try {
+                   await updatePatient(patient.id, updates);
+                 } catch (err) {
+                   console.error('Failed to update patient from Google Event', err);
+                 }
                }
             }
             
