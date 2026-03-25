@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, DollarSign, Settings } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, DollarSign, Settings, X, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getInitials } from '../../lib/utils';
 
@@ -11,13 +11,23 @@ const navItems = [
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { settings } = useApp();
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'center', padding: '24px 20px' }}>
-        <img src="/logo.png" alt="Logo Aline Herts" style={{ height: 'auto', width: '100%', maxWidth: '160px', display: 'block' }} />
+    <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="sidebar-header">
+        <div className="sidebar-logo">
+          <img src="/logo.png" alt="Logo Aline Herts" />
+        </div>
+        <button className="sidebar-close mobile-only" onClick={onClose} aria-label="Close menu">
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -27,20 +37,24 @@ export default function Sidebar() {
             to={to}
             end={to === '/'}
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            onClick={onClose}
           >
-            <Icon className="nav-icon" />
-            {label}
+            <div className="nav-item-content">
+              <Icon className="nav-icon" />
+              <span className="nav-label">{label}</span>
+            </div>
+            <ChevronRight className="nav-arrow" size={16} />
           </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-footer">
         <div className="avatar">{getInitials(settings.analyst_name)}</div>
-        <div>
+        <div className="user-info">
           <div className="user-name">{settings.analyst_name}</div>
           <div className="user-role">Psicanalista{settings.analyst_crp ? ` • CRP ${settings.analyst_crp}` : ''}</div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

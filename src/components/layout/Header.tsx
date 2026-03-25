@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Search, Bell, Calendar } from 'lucide-react';
+import { Search, Bell, Calendar, Menu } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useApp } from '../../context/AppContext';
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const { searchQuery, setSearchQuery } = useApp();
   const [now, setNow] = useState(new Date());
 
@@ -18,13 +22,22 @@ export default function Header() {
 
   return (
     <header className="header">
-      <div className="search-bar">
-        <Search size={15} color="var(--text-muted)" />
-        <input
-          placeholder="Buscar..."
-          value={searchQuery}
-          onChange={setSearchQuery ? (e => setSearchQuery(e.target.value)) : undefined}
-        />
+      <div className="header-left">
+        <button 
+          className="menu-toggle mobile-only" 
+          onClick={onMenuClick}
+          aria-label="Toggle Menu"
+        >
+          <Menu size={20} />
+        </button>
+        <div className="search-bar">
+          <Search size={15} color="var(--text-muted)" />
+          <input
+            placeholder="Buscar..."
+            value={searchQuery}
+            onChange={setSearchQuery ? (e => setSearchQuery(e.target.value)) : undefined}
+          />
+        </div>
       </div>
 
       <div className="header-right">

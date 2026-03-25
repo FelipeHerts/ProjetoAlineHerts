@@ -2,28 +2,29 @@ import { useState } from 'react';
 import { X, ExternalLink, Loader } from 'lucide-react';
 import { usePayments } from '../../hooks/useData';
 import { useApp } from '../../context/AppContext';
-import type { Patient } from '../../types';
+import type { Patient, Payment } from '../../types';
 import { createMPPaymentLink } from '../../lib/mercadoPago';
 
 interface Props {
   patientId: string;
   patient: Patient;
+  payment?: Payment;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function PaymentModal({ patientId, patient, onClose, onSaved }: Props) {
+export default function PaymentModal({ patientId, patient, payment, onClose, onSaved }: Props) {
   const { settings } = useApp();
-  const { createPayment } = usePayments(patientId);
+  const { createPayment, updatePayment } = usePayments(patientId);
   const [saving, setSaving] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
-  const [mpLink, setMpLink] = useState('');
+  const [mpLink, setMpLink] = useState(payment?.mp_link || '');
   const [mpError, setMpError] = useState('');
   const [form, setForm] = useState({
-    amount: patient.session_value || settings.default_session_value,
-    description: 'Sessão de Psicanálise',
-    due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'pendente' as const,
+    amount: payment?.amount || patient.session_value || settings.default_session_value,
+    description: payment?.description || 'Sessão de Psicanálise',
+    due_date: payment?.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    status: payment?.status || 'pendente' as const,
   });
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
@@ -53,14 +54,18 @@ export default function PaymentModal({ patientId, patient, onClose, onSaved }: P
   const handleSave = async () => {
     setSaving(true);
     try {
-      await createPayment({
-        patient_id: patientId,
+      const payload = {
         amount: Number(form.amount),
         description: form.description,
         due_date: form.due_date,
         status: form.status,
         mp_link: mpLink || undefined,
-      });
+      };
+      if (payment) {
+        await updatePayment(payment.id, payload);
+      } else {
+        await createPayment({ ...payload, patient_id: patientId });
+      }
       onSaved();
     } finally {
       setSaving(false);
@@ -71,7 +76,7 @@ export default function PaymentModal({ patientId, patient, onClose, onSaved }: P
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h2 className="modal-title">Registrar Cobrança</h2>
+          <h2 className="modal-title">{payment ? 'Editar Cobrança' : 'Registrar Cobrança'}</h2>
           <button className="modal-close" onClick={onClose}><X size={18} /></button>
         </div>
         <div className="modal-body">
@@ -132,7 +137,7 @@ export default function PaymentModal({ patientId, patient, onClose, onSaved }: P
         <div className="modal-footer">
           <button className="btn btn-outline" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Salvando...' : 'Registrar Cobrança'}
+            {saving ? 'Salvando...' : payment ? 'Salvar Edição' : 'Registrar Cobrança'}
           </button>
         </div>
       </div>

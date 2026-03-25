@@ -73,7 +73,7 @@ export default function Configuracoes() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="config-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Profile */}
         <div className="card">
           <div className="card-header">
@@ -136,10 +136,6 @@ export default function Configuracoes() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
             Sincronize as sessões automaticamente com seu Google Calendar.
           </p>
-          <div className="alert alert-info" style={{ marginBottom: 14 }}>
-            Para integrar com o Google Calendar, você precisa criar um projeto no Google Cloud Console
-            e configurar as credenciais OAuth2.
-          </div>
           <div className="form-group" style={{ marginBottom: 12 }}>
             <label className="form-label">ID do Calendário Google</label>
             <input className="form-input" value={form.google_calendar_id || ''}
@@ -211,24 +207,6 @@ export default function Configuracoes() {
         </div>
       </div>
 
-      {/* Supabase / Data */}
-      <div className="card" style={{ marginTop: 20 }}>
-        <div className="card-header">
-          <div className="card-title">Banco de Dados — Supabase</div>
-        </div>
-        <div className="alert alert-warning">
-          <div>
-            <strong>Configuração necessária:</strong> Crie um arquivo <code>.env</code> na raiz do projeto com as variáveis:<br />
-            <code style={{ display: 'block', marginTop: 6, fontSize: 12 }}>
-              VITE_SUPABASE_URL=https://seu-projeto.supabase.co<br />
-              VITE_SUPABASE_ANON_KEY=sua-anon-key-aqui
-            </code>
-            <div style={{ marginTop: 8 }}>
-              Acesse <a href="https://supabase.com" target="_blank" rel="noreferrer" style={{ color: 'inherit', fontWeight: 600 }}>supabase.com</a> → Crie um projeto → API para obter as credenciais.
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

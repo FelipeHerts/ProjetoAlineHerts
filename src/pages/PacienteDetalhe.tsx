@@ -53,7 +53,7 @@ export default function PacienteDetalhe() {
       </button>
 
       {/* Patient Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 24 }}>
+      <div className="patient-header-mobile" style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
         <div style={{
           width: 64, height: 64, borderRadius: '50%',
           background: 'var(--primary-light)',
@@ -62,7 +62,7 @@ export default function PacienteDetalhe() {
         }}>
           {getInitials(patient.name)}
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: '200px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 className="page-title" style={{ fontSize: 22 }}>{patient.name}</h1>
             <span className={`badge ${patientStatusClass[patient.status]}`}>{patientStatusLabel[patient.status]}</span>
@@ -73,9 +73,9 @@ export default function PacienteDetalhe() {
             {patient.birth_date && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{ageBirthDate(patient.birth_date)}</span>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline btn-sm" onClick={() => setEditPatient(true)}><Edit size={13} /> Editar</button>
-          <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleDelete}><Trash2 size={13} /></button>
+        <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: '300px', flexShrink: 0 }}>
+          <button className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={() => setEditPatient(true)}><Edit size={13} /> Editar</button>
+          <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', flex: 1 }} onClick={handleDelete}><Trash2 size={13} /></button>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ export default function PacienteDetalhe() {
             <div className="empty-state card"><Calendar size={40} className="empty-icon" /><p>Nenhuma sessão registrada.</p></div>
           ) : (
             <div className="table-container">
-              <table>
+              <table className="hidden-mobile">
                 <thead>
                   <tr>
                     <th>Data e Hora</th>
@@ -222,6 +222,23 @@ export default function PacienteDetalhe() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile Sessions */}
+              <div className="mobile-cards">
+                {sessions.map(s => (
+                  <div key={s.id} className="card-mobile">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{formatDateTime(s.date_time)}</div>
+                      <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
+                    </div>
+                    <div style={{ fontSize: 13, display: 'flex', gap: 10, color: 'var(--text-muted)' }}>
+                      <span>{s.duration_min} min</span>
+                      {s.value && <span>{formatCurrency(s.value)}</span>}
+                    </div>
+                    {s.notes && <div style={{ marginTop: 8, fontSize: 12, padding: '8px', background: 'var(--bg)', borderRadius: 4 }}>{s.notes}</div>}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -247,7 +264,7 @@ export default function PacienteDetalhe() {
             <div className="empty-state card"><DollarSign size={40} className="empty-icon" /><p>Nenhum pagamento registrado.</p></div>
           ) : (
             <div className="table-container">
-              <table>
+              <table className="hidden-mobile">
                 <thead>
                   <tr><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Link Pagamento</th></tr>
                 </thead>
@@ -267,6 +284,23 @@ export default function PacienteDetalhe() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile Financeiro */}
+              <div className="mobile-cards">
+                {payments.map(p => (
+                  <div key={p.id} className="card-mobile">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div style={{ fontWeight: 700 }}>{formatCurrency(p.amount)}</div>
+                      <span className={`badge ${paymentStatusClass[p.status]}`}>{paymentStatusLabel[p.status]}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.description || 'Sessão de Psicanálise'}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                      <div style={{ fontSize: 12 }}>Vencimento: {formatDate(p.due_date)}</div>
+                      {p.mp_link && <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">Pagar</a>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

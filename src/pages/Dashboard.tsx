@@ -92,7 +92,7 @@ export default function Dashboard() {
       </div>
 
       {/* Two columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20 }}>
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Upcoming sessions */}
         <div className="card">
           <div className="card-header">
@@ -131,8 +131,8 @@ export default function Dashboard() {
                       {format(parseISO(s.date_time), 'MMM', { locale: ptBR })}
                     </span>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{(s as any).patient?.name || '—'}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(s as any).patient?.name || '—'}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                       <Clock size={11} />
                       {format(parseISO(s.date_time), 'HH:mm')} · {s.duration_min} min
@@ -167,13 +167,13 @@ export default function Dashboard() {
                   padding: '10px 0',
                   borderBottom: i < 5 ? '1px solid var(--border-light)' : 'none'
                 }}>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{(p as any).patient?.name || '—'}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(p as any).patient?.name || '—'}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {p.description || 'Sessão de Psicanálise'}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{formatCurrency(p.amount)}</div>
                     <span className={`badge ${p.status === 'pago' ? 'badge-success' : p.status === 'pendente' ? 'badge-warning' : 'badge-muted'}`} style={{ fontSize: 10.5 }}>
                       {p.status === 'pago' ? 'Pago' : p.status === 'pendente' ? 'Pendente' : 'Cancelado'}

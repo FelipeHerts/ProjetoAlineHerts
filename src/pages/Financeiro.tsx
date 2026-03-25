@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, DollarSign, TrendingUp, CheckCircle, Clock, ExternalLink } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, CheckCircle, Clock, ExternalLink, Edit, Trash2 } from 'lucide-react';
 import { usePayments } from '../hooks/useData';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -10,12 +10,13 @@ import PaymentModal from '../components/financeiro/PaymentModal';
 import { useApp } from '../context/AppContext';
 
 export default function Financeiro() {
-  const { payments, loading, updatePayment } = usePayments();
+  const { payments, loading, updatePayment, deletePayment } = usePayments();
   const { patients } = usePatients();
   const { settings: _settings } = useApp();
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [editPayment, setEditPayment] = useState<any>(null);
 
   // Revenue by month (last 6 months)
   const monthlyData = Array.from({ length: 6 }, (_, i) => {
@@ -50,7 +51,7 @@ export default function Financeiro() {
             <option value="">Todos os pacientes</option>
             {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)} disabled={!selectedPatientId}>
+          <button className="btn btn-primary" onClick={() => { setEditPayment(null); setShowModal(true); }} disabled={!selectedPatientId}>
             <Plus size={15} /> Nova Cobrança
           </button>
         </div>
@@ -157,11 +158,15 @@ export default function Financeiro() {
                       </select>
                     </td>
                     <td>
-                      {p.mp_link && (
-                        <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
-                          <ExternalLink size={11} /> Link MP
-                        </a>
-                      )}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button className="btn btn-ghost btn-sm" title="Editar" onClick={() => { setSelectedPatientId(p.patient_id); setEditPayment(p); setShowModal(true); }}><Edit size={14} /></button>
+                        <button className="btn btn-ghost btn-sm" title="Excluir" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm('Excluir esta cobrança?')) deletePayment(p.id); }}><Trash2 size={14} /></button>
+                        {p.mp_link && (
+                          <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
+                            <ExternalLink size={11} /> Link MP
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -192,8 +197,16 @@ export default function Financeiro() {
                     </select>
                   </div>
 
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={() => { setSelectedPatientId(p.patient_id); setEditPayment(p); setShowModal(true); }}>
+                      <Edit size={13} /> Editar
+                    </button>
+                    <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', flex: 1 }} onClick={() => { if (confirm('Excluir esta cobrança?')) deletePayment(p.id); }}>
+                      <Trash2 size={13} /> Excluir
+                    </button>
+                  </div>
                   {p.mp_link && (
-                    <div style={{ marginTop: 12 }}>
+                    <div style={{ marginTop: 8 }}>
                       <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
                         <ExternalLink size={13} /> Pagar via Mercado Pago
                       </a>
@@ -210,8 +223,9 @@ export default function Financeiro() {
         <PaymentModal
           patientId={selectedPatientId}
           patient={selectedPatient}
-          onClose={() => setShowModal(false)}
-          onSaved={() => setShowModal(false)}
+          payment={editPayment}
+          onClose={() => { setShowModal(false); setEditPayment(null); }}
+          onSaved={() => { setShowModal(false); setEditPayment(null); }}
         />
       )}
     </div>

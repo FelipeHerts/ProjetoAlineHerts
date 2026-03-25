@@ -124,7 +124,13 @@ export function usePayments(patientId?: string) {
     return data;
   };
 
-  return { payments, loading, refetch: fetch, createPayment, updatePayment };
+  const deletePayment = async (id: string) => {
+    const { error } = await supabase.from('payments').delete().eq('id', id);
+    if (error) throw error;
+    setPayments(prev => prev.filter(x => x.id !== id));
+  };
+
+  return { payments, loading, refetch: fetch, createPayment, updatePayment, deletePayment };
 }
 
 // ── Prontuário ──────────────────────────────────────────────
