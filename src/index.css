@@ -572,6 +572,7 @@ tbody tr:hover { background: var(--bg); }
 
 /* ── Mobile/Tablet Utilities ── */
 .mobile-only { display: none !important; }
+.mobile-cards { display: none; }
 
 @media (max-width: 1024px) {
   :root { --sidebar-width: 250px; }
