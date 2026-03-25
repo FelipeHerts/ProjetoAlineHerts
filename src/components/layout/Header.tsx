@@ -21,20 +21,20 @@ export default function Header() {
       <div className="search-bar">
         <Search size={15} color="var(--text-muted)" />
         <input
-          placeholder="Buscar pacientes..."
+          placeholder="Buscar..."
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={setSearchQuery ? (e => setSearchQuery(e.target.value)) : undefined}
         />
       </div>
 
       <div className="header-right">
-        <button className="icon-btn" title="Notificações">
-          <Bell size={16} />
-        </button>
-        <div className="header-time" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="header-time hidden-mobile" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Calendar size={14} color="var(--text-muted)" />
           {dateFormatted}
         </div>
+        <button className="icon-btn" title="Notificações">
+          <Bell size={16} />
+        </button>
       </div>
     </header>
   );

@@ -150,7 +150,7 @@ export default function Agenda() {
               <div className="empty-state"><Calendar size={36} className="empty-icon" /><p>Nenhuma sessão neste mês.</p></div>
             ) : (
               <div className="table-container" style={{ border: 'none' }}>
-                <table>
+                <table className="hidden-mobile">
                   <thead>
                     <tr><th>Data e Hora</th><th>Paciente</th><th>Duração</th><th>Valor</th><th>Status</th><th></th></tr>
                   </thead>
@@ -178,6 +178,23 @@ export default function Agenda() {
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile Cards */}
+                <div className="mobile-cards">
+                  {monthSessions.map(s => (
+                    <div key={s.id} className="card-mobile" onClick={() => { setEditSession(s); setShowModal(true); }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{format(parseISO(s.date_time), "dd/MM/yy 'às' HH:mm")}</div>
+                        <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
+                      </div>
+                      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{(s as any).patient?.name || '—'}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div>{s.duration_min} min • {s.value ? formatCurrency(s.value) : '—'}</div>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px' }}>Ver detalhes</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

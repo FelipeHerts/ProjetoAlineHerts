@@ -51,7 +51,7 @@ export default function Pacientes() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Table & Cards */}
       <div className="table-container">
         {loading ? (
           <div className="loading-page"><div className="spinner" /> Carregando...</div>
@@ -65,38 +65,69 @@ export default function Pacientes() {
             )}
           </div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Paciente</th>
-                <th>Telefone</th>
-                <th>Idade</th>
-                <th>Desde</th>
-                <th>Valor/Sessão</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            <table className="hidden-mobile">
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th>Telefone</th>
+                  <th>Idade</th>
+                  <th>Desde</th>
+                  <th>Valor/Sessão</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr key={p.id} className="patient-row" onClick={() => navigate(`/pacientes/${p.id}`)}>
+                    <td>
+                      <div className="patient-info">
+                        <div className="patient-avatar">{getInitials(p.name)}</div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{p.name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.email || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{p.phone || '—'}</td>
+                    <td>{ageBirthDate(p.birth_date)}</td>
+                    <td>{formatDate(p.started_at)}</td>
+                    <td>{p.session_value ? `R$ ${p.session_value}` : '—'}</td>
+                    <td><span className={`badge ${patientStatusClass[p.status]}`}>{patientStatusLabel[p.status]}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile Cards */}
+            <div className="mobile-cards">
               {filtered.map(p => (
-                <tr key={p.id} className="patient-row" onClick={() => navigate(`/pacientes/${p.id}`)}>
-                  <td>
+                <div key={p.id} className="card-mobile" onClick={() => navigate(`/pacientes/${p.id}`)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <div className="patient-info">
                       <div className="patient-avatar">{getInitials(p.name)}</div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{p.name}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.email || '—'}</div>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{p.phone || 'Sem telefone'}</div>
                       </div>
                     </div>
-                  </td>
-                  <td>{p.phone || '—'}</td>
-                  <td>{ageBirthDate(p.birth_date)}</td>
-                  <td>{formatDate(p.started_at)}</td>
-                  <td>{p.session_value ? `R$ ${p.session_value}` : '—'}</td>
-                  <td><span className={`badge ${patientStatusClass[p.status]}`}>{patientStatusLabel[p.status]}</span></td>
-                </tr>
+                    <span className={`badge ${patientStatusClass[p.status]}`}>{patientStatusLabel[p.status]}</span>
+                  </div>
+                  <div className="divider" style={{ margin: '10px 0' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div className="info-item">
+                      <div className="info-label">Valor/Sessão</div>
+                      <div className="info-value" style={{ fontSize: 13 }}>{p.session_value ? `R$ ${p.session_value}` : '—'}</div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-label">Idade</div>
+                      <div className="info-value" style={{ fontSize: 13 }}>{ageBirthDate(p.birth_date)}</div>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

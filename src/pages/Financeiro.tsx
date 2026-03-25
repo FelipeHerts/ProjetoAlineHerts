@@ -134,19 +134,55 @@ export default function Financeiro() {
         ) : filtered.length === 0 ? (
           <div className="empty-state"><DollarSign size={36} className="empty-icon" /><p>Nenhuma cobrança encontrada.</p></div>
         ) : (
-          <table>
-            <thead>
-              <tr><th>Paciente</th><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr>
-            </thead>
-            <tbody>
+          <>
+            <table className="hidden-mobile">
+              <thead>
+                <tr><th>Paciente</th><th>Descrição</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 600 }}>{(p as any).patient?.name || '—'}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{p.description || 'Sessão de Psicanálise'}</td>
+                    <td style={{ fontWeight: 700 }}>{formatCurrency(p.amount)}</td>
+                    <td>{formatDate(p.due_date)}</td>
+                    <td>
+                      <select className="form-select" style={{ padding: '3px 8px', fontSize: 12, width: 'auto' }}
+                        value={p.status}
+                        onChange={e => updatePayment(p.id, { status: e.target.value as any, ...(e.target.value === 'pago' ? { paid_at: new Date().toISOString() } : {}) })}>
+                        <option value="pendente">Pendente</option>
+                        <option value="pago">Pago</option>
+                        <option value="vencido">Vencido</option>
+                        <option value="cancelado">Cancelado</option>
+                      </select>
+                    </td>
+                    <td>
+                      {p.mp_link && (
+                        <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
+                          <ExternalLink size={11} /> Link MP
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile Cards */}
+            <div className="mobile-cards">
               {filtered.map(p => (
-                <tr key={p.id}>
-                  <td style={{ fontWeight: 600 }}>{(p as any).patient?.name || '—'}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{p.description || 'Sessão de Psicanálise'}</td>
-                  <td style={{ fontWeight: 700 }}>{formatCurrency(p.amount)}</td>
-                  <td>{formatDate(p.due_date)}</td>
-                  <td>
-                    <select className="form-select" style={{ padding: '3px 8px', fontSize: 12, width: 'auto' }}
+                <div key={p.id} className="card-mobile">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{(p as any).patient?.name || 'Paciente'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{p.description || 'Sessão de Psicanálise'}</div>
+                    </div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{formatCurrency(p.amount)}</div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, gap: 10 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Venc: {formatDate(p.due_date)}</div>
+                    <select className="form-select" style={{ padding: '4px 8px', fontSize: 12, width: 'auto' }}
                       value={p.status}
                       onChange={e => updatePayment(p.id, { status: e.target.value as any, ...(e.target.value === 'pago' ? { paid_at: new Date().toISOString() } : {}) })}>
                       <option value="pendente">Pendente</option>
@@ -154,18 +190,19 @@ export default function Financeiro() {
                       <option value="vencido">Vencido</option>
                       <option value="cancelado">Cancelado</option>
                     </select>
-                  </td>
-                  <td>
-                    {p.mp_link && (
-                      <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
-                        <ExternalLink size={11} /> Link MP
+                  </div>
+
+                  {p.mp_link && (
+                    <div style={{ marginTop: 12 }}>
+                      <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                        <ExternalLink size={13} /> Pagar via Mercado Pago
                       </a>
-                    )}
-                  </td>
-                </tr>
+                    </div>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
