@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, RefreshCw } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useSessions } from '../hooks/useData';
+import { useSessions, usePatients } from '../hooks/useData';
 import { useApp } from '../context/AppContext';
 import { loadGoogleScripts, listUpcomingEvents } from '../lib/googleCalendar';
 import { sessionStatusClass, sessionStatusLabel, formatCurrency } from '../lib/utils';
@@ -18,7 +18,8 @@ export default function Agenda() {
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
   const { settings } = useApp();
-  const { sessions, refetch, updateSession } = useSessions();
+  const { patients, createPatient } = usePatients();
+  const { sessions, refetch, updateSession, createSession } = useSessions();
 
   const fetchGoogleEvents = async () => {
     if (!settings.google_calendar_connected || !settings.google_calendar_id) return;
@@ -28,7 +29,48 @@ export default function Agenda() {
       const start = startOfMonth(currentDate).toISOString();
       const end = endOfMonth(currentDate).toISOString();
       const events = await listUpcomingEvents(settings.google_calendar_id, start, end);
+      
+      let hasNewInternalSessions = false;
+      
+      if (events) {
+        // Clone lists to update locally during loop
+        const localPatients = [...patients];
+        const localSessions = [...sessions];
+        
+        for (const event of events) {
+          if (event.description && event.description.includes('calendar.app.google/etwgXRcVKBeWSDgr5')) {
+            const sessionExists = localSessions.some(s => s.google_event_id === event.id);
+            if (!sessionExists) {
+              const patientName = event.summary.split(' e ')[0].split(' and ')[0].trim();
+              let patientToUse = localPatients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
+              
+              if (!patientToUse) {
+                patientToUse = await createPatient({ name: patientName, status: 'ativo' });
+                if (patientToUse) {
+                  localPatients.push(patientToUse);
+                }
+              }
+              
+              if (patientToUse) {
+                const newSession = await createSession({
+                  patient_id: patientToUse.id,
+                  date_time: event.start.dateTime,
+                  duration_min: settings.default_session_duration || 50,
+                  status: 'agendada',
+                  google_event_id: event.id,
+                  value: settings.default_session_value || 0
+                });
+                localSessions.push(newSession);
+                hasNewInternalSessions = true;
+              }
+            }
+          }
+        }
+      }
+
       setGoogleEvents(events || []);
+      if (hasNewInternalSessions) refetch();
+
     } catch (err) {
       console.error('Failed to fetch Google events:', err);
     } finally {
@@ -51,6 +93,7 @@ export default function Agenda() {
       try { return isSameDay(parseISO(s.date_time), day); } catch { return false; } 
     });
     const external = googleEvents.filter(e => {
+      if (sessions.some(s => s.google_event_id === e.id)) return false;
       try { return isSameDay(parseISO(e.start.dateTime), day); } catch { return false; }
     });
     return { internal, external };
