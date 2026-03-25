@@ -5,7 +5,7 @@ import { usePatients } from '../hooks/useData';
 import { useApp } from '../context/AppContext';
 import { formatDate, ageBirthDate, patientStatusClass, patientStatusLabel, getInitials } from '../lib/utils';
 import PatientModal from '../components/patients/PatientModal';
-import type { Patient } from '../types';
+
 
 export default function Pacientes() {
   const navigate = useNavigate();

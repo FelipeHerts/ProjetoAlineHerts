@@ -4,7 +4,6 @@ import { usePayments } from '../../hooks/useData';
 import { useApp } from '../../context/AppContext';
 import type { Patient } from '../../types';
 import { createMPPaymentLink } from '../../lib/mercadoPago';
-import { formatCurrency } from '../../lib/utils';
 
 interface Props {
   patientId: string;

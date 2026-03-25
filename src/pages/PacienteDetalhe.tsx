@@ -8,7 +8,7 @@ import ProntuarioModal from '../components/patients/ProntuarioModal';
 import PresentationEditor from '../components/patients/PresentationEditor';
 import SessionModal from '../components/agenda/SessionModal';
 import PaymentModal from '../components/financeiro/PaymentModal';
-import type { Patient } from '../types';
+
 
 
 const TABS = ['Dados', 'Apresentação', 'Prontuário', 'Sessões', 'Financeiro'];
