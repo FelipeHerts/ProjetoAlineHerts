@@ -102,4 +102,6 @@ export interface GoogleEvent {
     timeZone?: string;
   };
   location?: string;
+  htmlLink?: string;
+  hangoutLink?: string;
 }

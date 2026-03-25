@@ -41,24 +41,49 @@ export default function Agenda() {
           if (event.description && event.description.includes('calendar.app.google/etwgXRcVKBeWSDgr5')) {
             const sessionExists = localSessions.some(s => s.google_event_id === event.id);
             if (!sessionExists) {
-              const patientName = event.summary.split(' e ')[0].split(' and ')[0].trim();
+              // Extrair campos da descrição
+              const cleanDesc = event.description.replace(/<br\s*\/?>(?:\s*<br\s*\/?>)*/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
+              
+              const extractField = (label: string) => {
+                const regex = new RegExp(`(?:${label})\\s*:?\\s*\\n?\\s*([^\\n]+)`, 'i');
+                const match = cleanDesc.match(regex);
+                return match ? match[1].trim() : undefined;
+              };
+
+              // Reservado por é padrão do Google, mas procuramos pelas labels customizadas também
+              const extName = extractField('Reservado por') || extractField('Nome');
+              const extEmail = extractField('E-mail') || extractField('Email');
+              const extPhone = extractField('Telefone') || extractField('Celular');
+              const extCpf = extractField('CPF');
+
+              const patientName = extName || event.summary.split(' e ')[0].split(' and ')[0].trim();
               let patientToUse = localPatients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
               
               if (!patientToUse) {
-                patientToUse = await createPatient({ name: patientName, status: 'ativo' });
+                const newPatientData: any = { name: patientName, status: 'ativo' };
+                if (extEmail) newPatientData.email = extEmail;
+                if (extPhone) newPatientData.phone = extPhone;
+                if (extCpf) newPatientData.cpf = extCpf;
+
+                patientToUse = await createPatient(newPatientData);
                 if (patientToUse) {
                   localPatients.push(patientToUse);
                 }
               }
               
               if (patientToUse) {
+                let sessionNotes = '';
+                if (event.hangoutLink) sessionNotes += `Link do Google Meet: ${event.hangoutLink}\n`;
+                if (event.htmlLink) sessionNotes += `Link do Google Calendar: ${event.htmlLink}\n`;
+
                 const newSession = await createSession({
                   patient_id: patientToUse.id,
                   date_time: event.start.dateTime,
                   duration_min: settings.default_session_duration || 50,
                   status: 'agendada',
                   google_event_id: event.id,
-                  value: settings.default_session_value || 0
+                  value: settings.default_session_value || 0,
+                  notes: sessionNotes.trim() || undefined
                 });
                 localSessions.push(newSession);
                 hasNewInternalSessions = true;
