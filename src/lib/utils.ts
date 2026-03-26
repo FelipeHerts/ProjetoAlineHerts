@@ -71,3 +71,11 @@ export const patientStatusClass: Record<string, string> = {
   inativo: 'badge-muted',
   alta: 'badge-primary',
 };
+
+export function extractMeetLink(session: any): string | null {
+  if (session.meet_link) return session.meet_link;
+  if (!session.notes) return null;
+  const match = session.notes.match(/(https?:\/\/meet\.google\.com\/[a-z0-9\-]+)/i);
+  if (match) return match[1];
+  return null;
+}

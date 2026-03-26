@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import { useSessions, usePatients } from '../hooks/useData';
 import { useApp } from '../context/AppContext';
 import { loadGoogleScripts, listUpcomingEvents } from '../lib/googleCalendar';
-import { sessionStatusClass, sessionStatusLabel, formatCurrency } from '../lib/utils';
+import { sessionStatusClass, sessionStatusLabel, formatCurrency, extractMeetLink } from '../lib/utils';
 import SessionModal from '../components/agenda/SessionModal';
 import type { Session, GoogleEvent } from '../types';
 
@@ -238,8 +238,8 @@ export default function Agenda() {
                         <td>{s.duration_min} min</td>
                         <td><span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span></td>
                         <td>
-                          {s.meet_link ? (
-                            <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                          {extractMeetLink(s) ? (
+                            <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
                               Entrar na Sala
                             </a>
                           ) : (
@@ -272,12 +272,12 @@ export default function Agenda() {
                       <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{(s as any).patient?.name || '—'}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
                         <div>{s.duration_min} min</div>
-                        {s.meet_link && (
-                          <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                        {extractMeetLink(s) && (
+                          <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
                             Entrar na Sala
                           </a>
                         )}
-                        {!s.meet_link && <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px' }}>Ver detalhes</button>}
+                        {!extractMeetLink(s) && <button className="btn btn-ghost btn-sm" style={{ padding: '2px 8px' }}>Ver detalhes</button>}
                       </div>
                     </div>
                   ))}
@@ -312,9 +312,9 @@ export default function Agenda() {
                       <span><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {format(parseISO(s.date_time), 'HH:mm')} — {s.duration_min}min</span>
                       {s.value && <span>{formatCurrency(s.value)}</span>}
                     </div>
-                    {s.meet_link && (
+                    {extractMeetLink(s) && (
                       <div style={{ marginTop: 6 }}>
-                        <a href={s.meet_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                        <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
                           Entrar na Sala
                         </a>
                       </div>

@@ -5,7 +5,7 @@ import { usePatients } from '../hooks/useData';
 import { useSessions } from '../hooks/useData';
 import { usePayments } from '../hooks/useData';
 import { useApp } from '../context/AppContext';
-import { formatCurrency, sessionStatusClass, sessionStatusLabel } from '../lib/utils';
+import { formatCurrency, sessionStatusClass, sessionStatusLabel, extractMeetLink } from '../lib/utils';
 import { format, isToday, isFuture, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import SessionModal from '../components/agenda/SessionModal';
@@ -140,8 +140,8 @@ export default function Dashboard() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                     <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
-                    {s.meet_link && (
-                      <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 10, borderColor: '#4285F4', color: '#4285F4' }}>
+                    {extractMeetLink(s) && (
+                      <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 10, borderColor: '#4285F4', color: '#4285F4' }}>
                         Entrar na Sala
                       </a>
                     )}
