@@ -138,7 +138,14 @@ export default function Dashboard() {
                       {format(parseISO(s.date_time), 'HH:mm')} · {s.duration_min} min
                     </div>
                   </div>
-                  <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
+                    {s.meet_link && (
+                      <a href={s.meet_link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 10, borderColor: '#4285F4', color: '#4285F4' }}>
+                        Entrar na Sala
+                      </a>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
