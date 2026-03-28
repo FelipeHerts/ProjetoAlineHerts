@@ -27,7 +27,18 @@ export default function Financeiro() {
     }
     setCheckingId(p.id);
     try {
-      const isPaid = await checkMPPaymentByPreferenceId(_settings.mp_access_token, p.mp_payment_id);
+      let prefId = p.mp_payment_id;
+      if (!prefId && p.mp_link?.includes('pref_id=')) {
+        prefId = p.mp_link.split('pref_id=')[1].split('&')[0];
+      }
+
+      if (!prefId) {
+        alert('Não foi possível encontrar o ID da cobrança neste link antigo. Gere um novo link ou atualize manualmente.');
+        setCheckingId(null);
+        return;
+      }
+
+      const isPaid = await checkMPPaymentByPreferenceId(_settings.mp_access_token, prefId);
       if (isPaid) {
         await updatePayment(p.id, { status: 'pago', paid_at: new Date().toISOString() });
         alert('Pagamento confirmado e atualizado para Pago!');
@@ -189,7 +200,7 @@ export default function Financeiro() {
                             <ExternalLink size={11} /> MP
                           </a>
                         )}
-                        {p.status === 'pendente' && p.mp_payment_id && (
+                        {p.status === 'pendente' && (p.mp_payment_id || p.mp_link?.includes('mercadopago')) && (
                           <button 
                             className="btn btn-outline btn-sm" 
                             title="Verificar Pagamento"
@@ -243,7 +254,7 @@ export default function Financeiro() {
                       <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center' }}>
                         <ExternalLink size={13} /> Pagar (MP)
                       </a>
-                      {p.status === 'pendente' && p.mp_payment_id && (
+                      {p.status === 'pendente' && (p.mp_payment_id || p.mp_link?.includes('mercadopago')) && (
                         <button 
                           className="btn btn-outline btn-sm"
                           onClick={() => handleVerifyPayment(p)}
