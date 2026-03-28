@@ -68,9 +68,13 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
       setForm(f => ({
         ...f,
         patient_id: pid,
-        duration_min: p.session_duration || f.duration_min,
-        value: p.session_value || f.value,
+        // Usa o valor ESPECÍFICO do paciente; se não tiver, usa o padrão das configurações
+        duration_min: p.session_duration || settings.default_session_duration,
+        value: p.session_value || settings.default_session_value,
       }));
+    } else {
+      // Paciente não encontrado — reseta para padrão
+      setForm(f => ({ ...f, patient_id: pid, value: settings.default_session_value }));
     }
   };
 
