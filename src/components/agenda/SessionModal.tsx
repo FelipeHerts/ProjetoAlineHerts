@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar } from 'lucide-react';
-import { usePatients } from '../../hooks/useData';
-import { useSessions } from '../../hooks/useData';
+import { X, Calendar, Trash2 } from 'lucide-react';
+import { usePatients, useSessions } from '../../hooks/useData';
 import { useApp } from '../../context/AppContext';
 import { createCalendarEvent } from '../../lib/googleCalendar';
 import type { Session } from '../../types';
@@ -11,13 +10,16 @@ interface Props {
   defaultPatientId?: string;
   onClose: () => void;
   onSaved: () => void;
+  onDeleted?: () => void;
 }
 
-export default function SessionModal({ session, defaultPatientId, onClose, onSaved }: Props) {
+export default function SessionModal({ session, defaultPatientId, onClose, onSaved, onDeleted }: Props) {
   const { settings } = useApp();
   const { patients } = usePatients();
-  const { createSession, updateSession } = useSessions();
+  const { createSession, updateSession, deleteSession } = useSessions();
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState({
     patient_id: defaultPatientId || '',
     date_time: new Date().toISOString().slice(0, 16),
@@ -85,7 +87,6 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
           const patient = patients.find(p => p.id === form.patient_id);
           const start = new Date(form.date_time);
           const end = new Date(start.getTime() + form.duration_min * 60000);
-          
           try {
             await createCalendarEvent(settings.google_calendar_id, {
               summary: `Sessão: ${patient?.name || 'Paciente'}`,
@@ -101,6 +102,18 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
       onSaved();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!session) return;
+    setDeleting(true);
+    try {
+      await deleteSession(session.id);
+      onDeleted ? onDeleted() : onClose();
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -164,8 +177,54 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
             <div className="alert alert-info" style={{ marginTop: 12, marginBottom: 0 }}>
               💡 Após salvar, você pode gerar o link de pagamento via Mercado Pago na aba Financeiro do paciente.
             </div>
+
+            {/* Popup de confirmação de exclusão */}
+            {confirmDelete && (
+              <div style={{
+                marginTop: 16,
+                padding: 16,
+                background: 'var(--danger-lighter, #fff5f5)',
+                border: '1.5px solid var(--danger, #e53e3e)',
+                borderRadius: 'var(--radius-sm)',
+              }}>
+                <p style={{ fontWeight: 600, color: 'var(--danger)', marginBottom: 8, fontSize: 14 }}>
+                  ⚠️ Confirmar exclusão desta sessão?
+                </p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+                  Esta ação não pode ser desfeita. A sessão será removida permanentemente.
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ background: 'var(--danger)', color: '#fff', border: 'none' }}
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Excluindo...' : '🗑 Sim, excluir'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="modal-footer">
+            {session && !confirmDelete && (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginRight: 'auto' }}
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 size={14} /> Excluir Sessão
+              </button>
+            )}
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Salvando...' : session ? 'Salvar Alterações' : 'Agendar Sessão'}
