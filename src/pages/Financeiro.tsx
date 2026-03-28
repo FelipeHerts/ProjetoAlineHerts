@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, DollarSign, TrendingUp, CheckCircle, Clock, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, CheckCircle, Clock, ExternalLink, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { usePayments } from '../hooks/useData';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { usePatients } from '../hooks/useData';
 import PaymentModal from '../components/financeiro/PaymentModal';
 import { useApp } from '../context/AppContext';
+import { checkMPPaymentByPreferenceId } from '../lib/mercadoPago';
 
 export default function Financeiro() {
   const { payments, loading, updatePayment, deletePayment } = usePayments();
@@ -17,6 +18,28 @@ export default function Financeiro() {
   const [showModal, setShowModal] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [editPayment, setEditPayment] = useState<any>(null);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+
+  const handleVerifyPayment = async (p: any) => {
+    if (!_settings.mp_access_token) {
+      alert('Configure o Access Token do Mercado Pago primeiro.');
+      return;
+    }
+    setCheckingId(p.id);
+    try {
+      const isPaid = await checkMPPaymentByPreferenceId(_settings.mp_access_token, p.mp_payment_id);
+      if (isPaid) {
+        await updatePayment(p.id, { status: 'pago', paid_at: new Date().toISOString() });
+        alert('Pagamento confirmado e atualizado para Pago!');
+      } else {
+        alert('Pagamento ainda não foi aprovado.');
+      }
+    } catch (e: any) {
+      alert(e.message || 'Erro ao verificar pagamento');
+    } finally {
+      setCheckingId(null);
+    }
+  };
 
   // Revenue by month (last 6 months)
   const monthlyData = Array.from({ length: 6 }, (_, i) => {
@@ -163,8 +186,18 @@ export default function Financeiro() {
                         <button className="btn btn-ghost btn-sm" title="Excluir" style={{ color: 'var(--danger)' }} onClick={() => { if (confirm('Excluir esta cobrança?')) deletePayment(p.id); }}><Trash2 size={14} /></button>
                         {p.mp_link && (
                           <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
-                            <ExternalLink size={11} /> Link MP
+                            <ExternalLink size={11} /> MP
                           </a>
+                        )}
+                        {p.status === 'pendente' && p.mp_payment_id && (
+                          <button 
+                            className="btn btn-outline btn-sm" 
+                            title="Verificar Pagamento"
+                            onClick={() => handleVerifyPayment(p)}
+                            disabled={checkingId === p.id}
+                          >
+                            <RefreshCw size={11} className={checkingId === p.id ? "spinner" : ""} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -206,10 +239,20 @@ export default function Financeiro() {
                     </button>
                   </div>
                   {p.mp_link && (
-                    <div style={{ marginTop: 8 }}>
-                      <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
-                        <ExternalLink size={13} /> Pagar via Mercado Pago
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                      <a href={p.mp_link} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ flex: 1, justifyContent: 'center' }}>
+                        <ExternalLink size={13} /> Pagar (MP)
                       </a>
+                      {p.status === 'pendente' && p.mp_payment_id && (
+                        <button 
+                          className="btn btn-outline btn-sm"
+                          onClick={() => handleVerifyPayment(p)}
+                          disabled={checkingId === p.id}
+                          title="Verificar Pagamento"
+                        >
+                          <RefreshCw size={13} className={checkingId === p.id ? "spinner" : ""} />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

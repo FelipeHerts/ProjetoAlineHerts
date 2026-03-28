@@ -19,6 +19,7 @@ export default function PaymentModal({ patientId, patient, payment, onClose, onS
   const [saving, setSaving] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
   const [mpLink, setMpLink] = useState(payment?.mp_link || '');
+  const [mpPrefId, setMpPrefId] = useState(payment?.mp_payment_id || '');
   const [mpError, setMpError] = useState('');
   const [form, setForm] = useState({
     amount: payment?.amount || patient.session_value || settings.default_session_value,
@@ -44,6 +45,7 @@ export default function PaymentModal({ patientId, patient, payment, onClose, onS
         form.description
       );
       setMpLink(result.init_point);
+      setMpPrefId(result.id);
     } catch (e: any) {
       setMpError(e.message || 'Erro ao gerar link');
     } finally {
@@ -60,6 +62,7 @@ export default function PaymentModal({ patientId, patient, payment, onClose, onS
         due_date: form.due_date,
         status: form.status,
         mp_link: mpLink || undefined,
+        mp_payment_id: mpPrefId || undefined,
       };
       if (payment) {
         await updatePayment(payment.id, payload);
