@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Calendar, Brain, Save, ExternalLink, CheckCircle, RefreshCw } from 'lucide-react';
+import { Settings, Key, Calendar, Brain, Save, ExternalLink, CheckCircle, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { loadGoogleScripts, handleAuthClick, listUpcomingEvents } from '../lib/googleCalendar';
 
@@ -167,6 +167,41 @@ export default function Configuracoes() {
             )}
             <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
               <ExternalLink size={12} /> Console Cloud
+            </a>
+          </div>
+        </div>
+
+        {/* Mercado Pago */}
+        <div className="card">
+          <div className="card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Key size={18} color="#009EE3" />
+              <div className="card-title">Mercado Pago</div>
+            </div>
+            {settings.mp_access_token && (
+              <span className="badge badge-success"><CheckCircle size={11} /> Configurado</span>
+            )}
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+            Configure suas credenciais para gerar links de pagamento automáticos.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="form-group">
+              <label className="form-label">Access Token</label>
+              <input className="form-input" type="password" value={form.mp_access_token || ''}
+                onChange={e => set('mp_access_token', e.target.value)}
+                placeholder="APP_USR-xxxxxxxxxxxxxxxxxxxx" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Public Key</label>
+              <input className="form-input" value={form.mp_public_key || ''}
+                onChange={e => set('mp_public_key', e.target.value)}
+                placeholder="APP_USR-xxxx-xxxx-xxxx-xxxx" />
+            </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noreferrer" className="btn btn-outline btn-sm">
+              <ExternalLink size={12} /> Mercado Pago Developers
             </a>
           </div>
         </div>
