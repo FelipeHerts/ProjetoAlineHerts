@@ -18,7 +18,7 @@ export default function Agenda() {
   const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
   const [syncing, setSyncing] = useState(false);
   const { settings } = useApp();
-  const { patients, createPatient, loading: patientsLoading } = usePatients();
+  const { patients, createPatient, updatePatient, loading: patientsLoading } = usePatients();
   const { sessions, refetch, updateSession, createSession, loading: sessionsLoading } = useSessions();
 
   const fetchGoogleEvents = async () => {
@@ -45,20 +45,58 @@ export default function Agenda() {
           if (isConsultaOnline) {
             const sessionExists = localSessions.some(s => s.google_event_id === event.id);
             if (!sessionExists) {
-              // Extrair campos da descrição
-              const cleanDesc = event.description.replace(/<br\s*\/?>(?:\s*<br\s*\/?>)*/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '');
-              
-              const extractField = (label: string) => {
-                const regex = new RegExp(`(?:${label})\\s*:?\\s*\\n?\\s*([^\\n]+)`, 'i');
+              // Limpar HTML da descrição (incluindo entidades HTML)
+              const cleanDesc = (event.description || '')
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/p>/gi, '\n')
+                .replace(/&nbsp;/gi, ' ')
+                .replace(/&amp;/gi, '&')
+                .replace(/&#39;/gi, "'")
+                .replace(/&lt;/gi, '<')
+                .replace(/&gt;/gi, '>')
+                .replace(/&quot;/gi, '"')
+                .replace(/<[^>]+>/g, '')
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n');
+
+              // Log para debug
+              console.log('[Google Sync] Descrição limpa:', cleanDesc);
+
+              const extractField = (label: string): string | undefined => {
+                const regex = new RegExp(
+                  `(?:^|\\n)\\s*${label}\\s*:?\\s*([^\\n]+)`,
+                  'im'
+                );
                 const match = cleanDesc.match(regex);
-                return match ? match[1].trim() : undefined;
+                const val = match ? match[1].trim() : undefined;
+                // Rejeitar valores que são só pontuação/espaços
+                if (!val || /^[.\-–—\s]+$/.test(val)) return undefined;
+                return val;
               };
 
-              // Reservado por é padrão do Google, mas procuramos pelas labels customizadas também
-              const extName = extractField('Reservado por') || extractField('Nome');
-              const extEmail = extractField('E-mail') || extractField('Email');
-              const extPhone = extractField('Telefone') || extractField('Celular');
+              const extName = extractField('Reservado por') || extractField('Nome') || extractField('Nome completo');
+              
+              // E-mail — várias formas que o Google usa
+              const extEmailRaw = extractField('E-mail') 
+                || extractField('Email') 
+                || extractField('Endere.o de e-mail')
+                || extractField('Endereço de e-mail')
+                || extractField('Seu e-mail');
+              // Validar formato de e-mail básico
+              const extEmail = extEmailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extEmailRaw) ? extEmailRaw : undefined;
+
+              // Telefone — várias formas
+              const extPhoneRaw = extractField('Telefone') 
+                || extractField('Celular') 
+                || extractField('N.mero de telefone')
+                || extractField('Número de telefone')
+                || extractField('WhatsApp');
+              // Validar: deve ter pelo menos 8 dígitos
+              const extPhone = extPhoneRaw && /\d{8}/.test(extPhoneRaw.replace(/\D/g, '')) ? extPhoneRaw : undefined;
+
               const extCpf = extractField('CPF');
+
+              console.log('[Google Sync] Dados extraídos:', { extName, extEmail, extPhone, extCpf });
 
               let fallbackName = event.summary.replace(/consulta online/i, '').replace(/[-:]/g, '').trim();
               fallbackName = fallbackName || 'Paciente (Sem Nome)';
@@ -67,6 +105,7 @@ export default function Agenda() {
               let patientToUse = localPatients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
               
               if (!patientToUse) {
+                // Criar novo paciente com todos os dados extraídos
                 const newPatientData: any = { name: patientName, status: 'ativo' };
                 if (extEmail) newPatientData.email = extEmail;
                 if (extPhone) newPatientData.phone = extPhone;
@@ -75,6 +114,25 @@ export default function Agenda() {
                 patientToUse = await createPatient(newPatientData);
                 if (patientToUse) {
                   localPatients.push(patientToUse);
+                }
+              } else {
+                // Paciente já existe — atualizar campos faltantes ou incorretos
+                const updates: Record<string, string> = {};
+                const emailInvalid = !patientToUse.email || /^[.\-–—\s]+$/.test(patientToUse.email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientToUse.email);
+                if (extEmail && emailInvalid) updates.email = extEmail;
+                if (extPhone && !patientToUse.phone) updates.phone = extPhone;
+                if (extCpf && !patientToUse.cpf) updates.cpf = extCpf;
+
+                if (Object.keys(updates).length > 0) {
+                  try {
+                    const updated = await updatePatient(patientToUse.id, updates);
+                    const idx = localPatients.findIndex(p => p.id === patientToUse!.id);
+                    if (idx >= 0) localPatients[idx] = updated;
+                    patientToUse = updated;
+                    console.log('[Google Sync] Paciente atualizado:', updates);
+                  } catch (e) {
+                    console.error('[Google Sync] Erro ao atualizar paciente:', e);
+                  }
                 }
               }
               
