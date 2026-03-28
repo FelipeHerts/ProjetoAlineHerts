@@ -115,7 +115,14 @@ export function openWhatsApp(params: {
     lines.push(``, `💳 *Link para pagamento:*`, paymentLink);
   }
 
-  lines.push(``, `Atenciosamente,`, analystName);
+  // Assinatura profissional — o site é o último link para gerar a prévia da logo no WhatsApp
+  lines.push(
+    ``,
+    `─────────────────────`,
+    `*${analystName}*`,
+    `_Psicanalista_`,
+    `🌐 www.alineherts.com.br`
+  );
 
   const message = encodeURIComponent(lines.join('\n'));
 

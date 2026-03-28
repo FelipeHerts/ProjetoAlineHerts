@@ -89,6 +89,7 @@ export interface Settings {
   clinic_name: string;
   analyst_name: string;
   analyst_crp?: string;
+  analyst_whatsapp?: string;
 }
 
 export interface GoogleEvent {

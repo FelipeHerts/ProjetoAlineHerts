@@ -23,6 +23,7 @@ const defaultSettings: Settings = {
   clinic_name: 'Clínica de Psicanálise',
   analyst_name: 'Aline Herts',
   analyst_crp: '',
+  analyst_whatsapp: '18998003894',
   // Injeta credenciais do .env já nos padrões
   ...ENV_CREDENTIALS,
 };

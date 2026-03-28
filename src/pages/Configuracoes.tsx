@@ -84,6 +84,11 @@ export default function Configuracoes() {
               <input className="form-input" value={form.analyst_crp || ''} onChange={e => set('analyst_crp', e.target.value)} placeholder="00/000000" />
             </div>
             <div className="form-group">
+              <label className="form-label">WhatsApp</label>
+              <input className="form-input" value={form.analyst_whatsapp || ''} onChange={e => set('analyst_whatsapp', e.target.value)} placeholder="18999999999" />
+              <span className="form-hint">Usado para contato e envio de links aos pacientes</span>
+            </div>
+            <div className="form-group">
               <label className="form-label">Nome da Clínica</label>
               <input className="form-input" value={form.clinic_name} onChange={e => set('clinic_name', e.target.value)} />
             </div>
