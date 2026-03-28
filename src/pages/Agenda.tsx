@@ -22,7 +22,7 @@ export default function Agenda() {
   const { sessions, refetch, updateSession, createSession, loading: sessionsLoading } = useSessions();
 
   const fetchGoogleEvents = async () => {
-    if (syncing || !settings.google_calendar_connected || !settings.google_calendar_id) return;
+    if (syncing || !settings.google_calendar_id) return;
     if (patientsLoading || sessionsLoading) return;
     setSyncing(true);
     try {
@@ -108,10 +108,10 @@ export default function Agenda() {
   };
 
   useEffect(() => {
-    if (!patientsLoading && !sessionsLoading) {
+    if (!patientsLoading && !sessionsLoading && settings.google_calendar_id) {
       fetchGoogleEvents();
     }
-  }, [currentDate, settings.google_calendar_connected, patientsLoading, sessionsLoading]);
+  }, [currentDate, settings.google_calendar_id, patientsLoading, sessionsLoading]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -159,9 +159,9 @@ export default function Agenda() {
               </button>
             ))}
           </div>
-          {settings.google_calendar_connected && (
+          {settings.google_calendar_id && (
             <button className={`btn btn-outline btn-sm ${syncing ? 'loading' : ''}`} onClick={fetchGoogleEvents} disabled={syncing}>
-              <RefreshCw size={14} className={syncing ? 'spinner' : ''} /> {syncing ? 'Sincronizando...' : 'Sincronizar'}
+              <RefreshCw size={14} className={syncing ? 'spinner' : ''} /> {syncing ? 'Sincronizando...' : 'Sincronizar Google'}
             </button>
           )}
           <button className="btn btn-primary" onClick={() => { setEditSession(undefined); setShowModal(true); }}>
