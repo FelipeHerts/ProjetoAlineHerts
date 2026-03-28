@@ -79,3 +79,52 @@ export function extractMeetLink(session: any): string | null {
   if (match) return match[1];
   return null;
 }
+
+/**
+ * Abre o WhatsApp com mensagem pré-formatada contendo os links da sessão.
+ */
+export function openWhatsApp(params: {
+  phone?: string;
+  patientName: string;
+  analystName: string;
+  dateTime: string;
+  meetLink?: string | null;
+  paymentLink?: string | null;
+}) {
+  const { phone, patientName, analystName, dateTime, meetLink, paymentLink } = params;
+
+  let dateFmt = '-';
+  try {
+    const d = parseISO(dateTime);
+    dateFmt = format(d, "EEEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    dateFmt = dateFmt.charAt(0).toUpperCase() + dateFmt.slice(1);
+  } catch {}
+
+  const lines: string[] = [
+    `Olá, ${patientName}! 🌿`,
+    ``,
+    `Sua consulta foi agendada:`,
+    `📅 ${dateFmt}`,
+  ];
+
+  if (meetLink) {
+    lines.push(``, `📹 *Link para a sessão (Google Meet):*`, meetLink);
+  }
+
+  if (paymentLink) {
+    lines.push(``, `💳 *Link para pagamento:*`, paymentLink);
+  }
+
+  lines.push(``, `Atenciosamente,`, analystName);
+
+  const message = encodeURIComponent(lines.join('\n'));
+
+  // Remove formatação do número (apenas dígitos)
+  const cleanPhone = (phone || '').replace(/\D/g, '');
+  const url = cleanPhone
+    ? `https://wa.me/55${cleanPhone}?text=${message}`
+    : `https://wa.me/?text=${message}`;
+
+  window.open(url, '_blank');
+}
+

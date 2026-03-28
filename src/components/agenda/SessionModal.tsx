@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Trash2 } from 'lucide-react';
+import { X, Calendar, Trash2, MessageCircle } from 'lucide-react';
 import { usePatients, useSessions } from '../../hooks/useData';
 import { useApp } from '../../context/AppContext';
 import { createCalendarEvent } from '../../lib/googleCalendar';
+import { extractMeetLink, openWhatsApp } from '../../lib/utils';
+import { supabase } from '../../lib/supabase';
 import type { Session } from '../../types';
 
 interface Props {
@@ -20,6 +22,9 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [savedSession, setSavedSession] = useState<Session | undefined>(session);
+  const [justSaved, setJustSaved] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
   const [form, setForm] = useState({
     patient_id: defaultPatientId || '',
     date_time: new Date().toISOString().slice(0, 16),
@@ -69,6 +74,19 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
     }
   };
 
+  // Busca o link de pagamento mais recente do paciente (pendente ou com link)
+  const fetchPaymentLink = async (patientId: string) => {
+    const { data } = await supabase
+      .from('payments')
+      .select('mp_link')
+      .eq('patient_id', patientId)
+      .not('mp_link', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    return data?.mp_link || null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.patient_id) return;
@@ -80,10 +98,12 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
         value: Number(form.value),
         date_time: new Date(form.date_time).toISOString(),
       };
-      if (session) await updateSession(session.id, payload);
-      else {
-        const newSession = await createSession(payload as any);
-        if (syncGoogle && settings.google_calendar_connected && settings.google_calendar_id && newSession) {
+      let result: Session;
+      if (session) {
+        result = await updateSession(session.id, payload);
+      } else {
+        result = await createSession(payload as any);
+        if (syncGoogle && settings.google_calendar_connected && settings.google_calendar_id && result) {
           const patient = patients.find(p => p.id === form.patient_id);
           const start = new Date(form.date_time);
           const end = new Date(start.getTime() + form.duration_min * 60000);
@@ -99,7 +119,13 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
           }
         }
       }
-      onSaved();
+
+      setSavedSession(result);
+      // Busca link de pagamento do paciente para o WhatsApp
+      const mpLink = await fetchPaymentLink(form.patient_id);
+      setPaymentLink(mpLink);
+      setJustSaved(true);
+      // Não fecha o modal automaticamente — mostra botão de WhatsApp
     } finally {
       setSaving(false);
     }
@@ -115,6 +141,19 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
       setDeleting(false);
       setConfirmDelete(false);
     }
+  };
+
+  const handleSendWhatsApp = () => {
+    const patient = patients.find(p => p.id === form.patient_id);
+    const meetLink = savedSession ? extractMeetLink(savedSession) : null;
+    openWhatsApp({
+      phone: patient?.phone,
+      patientName: patient?.name || 'Paciente',
+      analystName: settings.analyst_name || 'Analista',
+      dateTime: savedSession?.date_time || form.date_time,
+      meetLink,
+      paymentLink,
+    });
   };
 
   return (
@@ -174,9 +213,47 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
                 <Calendar size={14} color="#4285F4" /> Sincronizar com Google Calendar
               </label>
             )}
-            <div className="alert alert-info" style={{ marginTop: 12, marginBottom: 0 }}>
-              💡 Após salvar, você pode gerar o link de pagamento via Mercado Pago na aba Financeiro do paciente.
-            </div>
+
+            {/* Banner de sucesso + WhatsApp */}
+            {justSaved && (
+              <div style={{
+                marginTop: 16,
+                padding: 16,
+                background: '#f0fff4',
+                border: '1.5px solid #68d391',
+                borderRadius: 'var(--radius-sm)',
+              }}>
+                <p style={{ fontWeight: 600, color: '#276749', marginBottom: 8, fontSize: 14 }}>
+                  ✅ Sessão salva com sucesso!
+                </p>
+                <p style={{ fontSize: 13, color: '#2f855a', marginBottom: 12 }}>
+                  Deseja enviar os links da sessão via WhatsApp para o paciente?
+                </p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ background: '#25D366', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={handleSendWhatsApp}
+                  >
+                    <MessageCircle size={14} /> Enviar via WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => { setJustSaved(false); onSaved(); }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!justSaved && (
+              <div className="alert alert-info" style={{ marginTop: 12, marginBottom: 0 }}>
+                💡 Após salvar, você pode gerar o link de pagamento via Mercado Pago na aba Financeiro do paciente.
+              </div>
+            )}
 
             {/* Popup de confirmação de exclusão */}
             {confirmDelete && (
@@ -203,33 +280,32 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
                   >
                     {deleting ? 'Excluindo...' : '🗑 Sim, excluir'}
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-sm"
-                    onClick={() => setConfirmDelete(false)}
-                  >
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => setConfirmDelete(false)}>
                     Cancelar
                   </button>
                 </div>
               </div>
             )}
           </div>
-          <div className="modal-footer">
-            {session && !confirmDelete && (
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginRight: 'auto' }}
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 size={14} /> Excluir Sessão
+
+          {!justSaved && (
+            <div className="modal-footer">
+              {session && !confirmDelete && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginRight: 'auto' }}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 size={14} /> Excluir Sessão
+                </button>
+              )}
+              <button type="button" className="btn btn-outline" onClick={onClose}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? 'Salvando...' : session ? 'Salvar Alterações' : 'Agendar Sessão'}
               </button>
-            )}
-            <button type="button" className="btn btn-outline" onClick={onClose}>Cancelar</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Salvando...' : session ? 'Salvar Alterações' : 'Agendar Sessão'}
-            </button>
-          </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
