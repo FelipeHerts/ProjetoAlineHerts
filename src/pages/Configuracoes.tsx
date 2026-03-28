@@ -1,13 +1,51 @@
-import { useState } from 'react';
-import { Settings, Calendar, Brain, Save, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Calendar, Brain, Save, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { loadGoogleScripts, handleAuthClick, listUpcomingEvents } from '../lib/googleCalendar';
 
 export default function Configuracoes() {
   const { settings, updateSettings } = useApp();
   const [saved, setSaved] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [googleScriptsLoaded, setGoogleScriptsLoaded] = useState(false);
   const [form, setForm] = useState({ ...settings });
 
+  useEffect(() => {
+    loadGoogleScripts().then(() => setGoogleScriptsLoaded(true));
+  }, []);
+
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleConnectGoogle = () => {
+    setConnecting(true);
+    handleAuthClick(
+      (token) => {
+        console.log('Google Auth success:', token);
+        setConnecting(false);
+        updateSettings({ google_calendar_connected: true });
+        alert('Google Calendar conectado com sucesso!');
+      },
+      (err) => {
+        console.error('Google Auth Error:', err);
+        setConnecting(false);
+        alert('Erro ao conectar com Google: ' + (err.error || err.message || 'Verifique o Console do Desenvolvedor.'));
+      }
+    );
+  };
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    try {
+      const calId = settings.google_calendar_id || 'primary';
+      const events = await listUpcomingEvents(calId);
+      alert(`Sucesso! Conexão ativa.\nEventos encontrados: ${events?.length || 0}`);
+    } catch (err: any) {
+      alert('Erro no teste: ' + (err.error?.message || err.message || 'Verifique o Console.'));
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleSave = () => {
     updateSettings(form);
@@ -89,11 +127,32 @@ export default function Configuracoes() {
               <span className="badge badge-warning"><XCircle size={11} /> Não configurado</span>
             )}
           </div>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
             {settings.google_calendar_id
-              ? `Sincronizado com: ${settings.google_calendar_id}`
-              : 'Configuração gerenciada pelo administrador do sistema.'}
+              ? `Calendário: ${settings.google_calendar_id}`
+              : 'Sincronize sessões automaticamente com o Google Calendar.'}
           </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleConnectGoogle}
+              disabled={connecting || !googleScriptsLoaded}
+            >
+              {connecting
+                ? <><RefreshCw size={12} className="spinner" /> Conectando...</>
+                : <>{settings.google_calendar_id ? '🔄 Reconectar' : '🔗 Conectar Google Calendar'}</>
+              }
+            </button>
+            {settings.google_calendar_id && (
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={handleTestConnection}
+                disabled={testing}
+              >
+                {testing ? 'Testando...' : 'Testar Conexão'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Mercado Pago */}
