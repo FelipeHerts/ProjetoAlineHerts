@@ -110,6 +110,29 @@ export function usePayments(patientId?: string) {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  // Realtime: atualiza automaticamente quando o webhook do MP altera um pagamento
+  useEffect(() => {
+    const channel = supabase
+      .channel('payments-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'payments' },
+        (payload) => {
+          setPayments(prev => prev.map(p =>
+            p.id === payload.new.id ? { ...p, ...payload.new } as Payment : p
+          ));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'payments' },
+        () => { fetch(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetch]);
+
   const createPayment = async (p: Omit<Payment, 'id' | 'created_at' | 'patient' | 'session'>) => {
     const { data, error } = await supabase.from('payments').insert(p).select('*, patient:patients(id,name)').single();
     if (error) throw error;
