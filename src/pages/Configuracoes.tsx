@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Key, Calendar, Brain, Save, ExternalLink, CheckCircle, RefreshCw } from 'lucide-react';
+import { Settings, Calendar, Brain, Save, ExternalLink, CheckCircle, RefreshCw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { loadGoogleScripts, handleAuthClick, listUpcomingEvents } from '../lib/googleCalendar';
 
