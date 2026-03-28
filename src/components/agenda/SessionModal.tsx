@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Trash2, MessageCircle } from 'lucide-react';
+import { X, Calendar, Trash2, MessageCircle, Phone, Mail, MapPin, User } from 'lucide-react';
 import { usePatients, useSessions } from '../../hooks/useData';
 import { useApp } from '../../context/AppContext';
 import { createCalendarEvent } from '../../lib/googleCalendar';
-import { extractMeetLink, openWhatsApp } from '../../lib/utils';
+import { extractMeetLink, openWhatsApp, formatDate } from '../../lib/utils';
 import { supabase } from '../../lib/supabase';
 import type { Session } from '../../types';
 
@@ -178,6 +178,62 @@ export default function SessionModal({ session, defaultPatientId, onClose, onSav
                 ))}
               </select>
             </div>
+
+            {/* Patient personal data panel */}
+            {form.patient_id && (() => {
+              const pat = patients.find(p => p.id === form.patient_id);
+              if (!pat) return null;
+              const hasData = pat.phone || pat.email || pat.cpf || pat.address || pat.birth_date;
+              if (!hasData) return null;
+              return (
+                <div style={{
+                  background: 'var(--primary-lighter, #fdf2f8)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '12px 14px',
+                  marginBottom: 4,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+                    Dados do Paciente
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px' }}>
+                    {pat.cpf && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <User size={11} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        <strong>CPF:</strong>&nbsp;{pat.cpf}
+                      </span>
+                    )}
+                    {pat.birth_date && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Calendar size={11} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        <strong>Nasc.:</strong>&nbsp;{formatDate(pat.birth_date)}
+                      </span>
+                    )}
+                    {pat.phone && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Phone size={11} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        {pat.phone}
+                      </span>
+                    )}
+                    {pat.email && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Mail size={11} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        {pat.email}
+                      </span>
+                    )}
+                    {pat.address && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}>
+                        <MapPin size={11} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        {pat.address}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Data e Hora *</label>

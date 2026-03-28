@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, RefreshCw, Phone, Mail, User } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSessions, usePatients } from '../hooks/useData';
@@ -303,27 +303,52 @@ export default function Agenda() {
             <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>Nenhuma consulta neste dia.</p>
           ) : (
             <>
-              {dayData.internal.map(s => (
-                <div key={s.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <div style={{ width: 4, height: 40, background: 'var(--primary)', borderRadius: 4, flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{(s as any).patient?.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 10, marginTop: 2 }}>
-                      <span><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {format(parseISO(s.date_time), 'HH:mm')} — {s.duration_min}min</span>
-                      {s.value && <span>{formatCurrency(s.value)}</span>}
-                    </div>
-                    {extractMeetLink(s) && (
-                      <div style={{ marginTop: 6 }}>
-                        <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
-                          Entrar na Sala
-                        </a>
+              {dayData.internal.map(s => {
+                const pat = (s as any).patient;
+                return (
+                  <div key={s.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid var(--border-light)' }}>
+                    <div style={{ width: 4, minHeight: 40, background: 'var(--primary)', borderRadius: 4, flexShrink: 0, alignSelf: 'stretch' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>{pat?.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 10, marginTop: 2, flexWrap: 'wrap' }}>
+                        <span><Clock size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> {format(parseISO(s.date_time), 'HH:mm')} — {s.duration_min}min</span>
+                        {s.value && <span>{formatCurrency(s.value)}</span>}
                       </div>
-                    )}
+                      {/* Patient personal data */}
+                      {pat && (pat.phone || pat.email || pat.cpf) && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 14px', marginTop: 5 }}>
+                          {pat.cpf && (
+                            <span style={{ fontSize: 11.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <User size={10} style={{ color: 'var(--primary)' }} /> <strong>CPF:</strong>&nbsp;{pat.cpf}
+                            </span>
+                          )}
+                          {pat.phone && (
+                            <span style={{ fontSize: 11.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Phone size={10} style={{ color: 'var(--primary)' }} /> {pat.phone}
+                            </span>
+                          )}
+                          {pat.email && (
+                            <span style={{ fontSize: 11.5, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <Mail size={10} style={{ color: 'var(--primary)' }} /> {pat.email}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {extractMeetLink(s) && (
+                        <div style={{ marginTop: 6 }}>
+                          <a href={extractMeetLink(s)!} target="_blank" rel="noreferrer" className="btn btn-outline btn-sm" style={{ padding: '2px 8px', fontSize: 11, borderColor: '#4285F4', color: '#4285F4' }}>
+                            Entrar na Sala
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                      <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setEditSession(s); setShowModal(true); }}>Editar</button>
+                    </div>
                   </div>
-                  <span className={`badge ${sessionStatusClass[s.status]}`}>{sessionStatusLabel[s.status]}</span>
-                  <button className="btn btn-ghost btn-sm" onClick={() => { setEditSession(s); setShowModal(true); }}>Editar</button>
-                </div>
-              ))}
+                );
+              })}
               {dayData.external.map(e => (
                 <div key={e.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border-light)', opacity: 0.8 }}>
                   <div style={{ width: 4, height: 40, background: '#64748b', borderRadius: 4, flexShrink: 0 }} />
