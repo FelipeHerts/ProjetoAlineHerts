@@ -42,8 +42,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('clinic_settings');
     if (saved) {
       try {
-        // As credenciais do .env sempre têm prioridade sobre o localStorage
-        setSettings({ ...defaultSettings, ...JSON.parse(saved), ...ENV_CREDENTIALS });
+        const parsed = JSON.parse(saved);
+        // Remove chaves com valor undefined/null do localStorage para que
+        // as variáveis de ambiente sempre prevaleçam
+        Object.keys(parsed).forEach(k => {
+          if (parsed[k] === undefined || parsed[k] === null || parsed[k] === '') {
+            delete parsed[k];
+          }
+        });
+        setSettings({ ...defaultSettings, ...parsed, ...ENV_CREDENTIALS });
       } catch {}
     }
   }, []);

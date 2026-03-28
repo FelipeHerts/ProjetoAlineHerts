@@ -1,7 +1,7 @@
 /**
  * Mercado Pago Integration
  * Uses the Mercado Pago API to create payment preferences and generate payment links.
- * Configure your Access Token in the Settings page.
+ * Credentials are loaded from environment variables automatically.
  */
 
 interface MPPreferenceItem {
@@ -26,8 +26,11 @@ export async function createMPPaymentLink(
   accessToken: string,
   items: MPPreferenceItem[],
   payer?: MPPayer,
-  description?: string
+  description?: string,
+  externalReference?: string,
 ): Promise<MPPreferenceResult> {
+  const WEBHOOK_URL = 'https://llrrnxalrolkmzcxihud.supabase.co/functions/v1/mp-webhook';
+
   const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
     method: 'POST',
     headers: {
@@ -38,6 +41,8 @@ export async function createMPPaymentLink(
       items,
       payer,
       statement_descriptor: description || 'Clínica de Psicanálise',
+      external_reference: externalReference,
+      notification_url: WEBHOOK_URL,
       payment_methods: {
         excluded_payment_types: [],
         installments: 1,
@@ -53,31 +58,38 @@ export async function createMPPaymentLink(
   return response.json();
 }
 
-export async function getMPPaymentStatus(
-  accessToken: string,
-  paymentId: string
-): Promise<{ status: string; status_detail: string }> {
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` },
-  });
-  if (!response.ok) throw new Error('Erro ao consultar pagamento');
-  return response.json();
-}
-
+/**
+ * Verifica o status de um pagamento consultando a preferência de pagamento.
+ * Esta função usa o endpoint de preferências (CORS aberto) e verifica os merchant_orders.
+ * O status é determinado pelo campo status da preferência.
+ */
 export async function checkMPPaymentByPreferenceId(
   accessToken: string,
   preferenceId: string
 ): Promise<boolean> {
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/search?preference_id=${preferenceId}`, {
-    headers: { 'Authorization': `Bearer ${accessToken}` },
-  });
+  // Consulta os merchant orders vinculados a essa preferência
+  // Este endpoint tem CORS aberto pelo Mercado Pago
+  const response = await fetch(
+    `https://api.mercadopago.com/merchant_orders/search?preference_id=${preferenceId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("MP Search API Error:", errorText);
-    throw new Error(`Erro ao buscar pagamentos: ${response.status} - ${errorText}`);
+    console.error('MP Merchant Orders API Error:', response.status, errorText);
+    throw new Error(`Erro ao verificar pagamento: ${response.status}`);
   }
+
   const data = await response.json();
-  const results = data.results || [];
-  // Se houver algum pagamento aprovado para essa preferência
-  return results.some((payment: any) => payment.status === 'approved');
+  const orders = data.elements || [];
+
+  // Um pedido é considerado pago quando o valor pago >= valor total
+  return orders.some(
+    (order: any) => order.status === 'closed' || Number(order.paid_amount) >= Number(order.total_amount)
+  );
 }

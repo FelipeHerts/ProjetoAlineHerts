@@ -38,14 +38,17 @@ export default function PaymentModal({ patientId, patient, payment, onClose, onS
     setGeneratingLink(true);
     setMpError('');
     try {
+      // UUID como external_reference — o webhook usa esse ID para encontrar o pagamento no banco
+      const extRef = payment?.mp_payment_id || crypto.randomUUID();
       const result = await createMPPaymentLink(
         settings.mp_access_token,
         [{ title: form.description, quantity: 1, unit_price: Number(form.amount), currency_id: 'BRL' }],
         { name: patient.name, email: patient.email },
-        form.description
+        form.description,
+        extRef
       );
       setMpLink(result.init_point);
-      setMpPrefId(result.id);
+      setMpPrefId(extRef);
     } catch (e: any) {
       setMpError(e.message || 'Erro ao gerar link');
     } finally {
@@ -116,6 +119,9 @@ export default function PaymentModal({ patientId, patient, payment, onClose, onS
                 Configure seu Access Token em <strong>Configurações</strong> para habilitar o Mercado Pago.
               </p>
             )}
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+              ✅ O pagamento será marcado como <strong>pago automaticamente</strong> quando o paciente confirmar pelo link.
+            </p>
             {mpError && <p style={{ fontSize: 12.5, color: 'var(--danger)', marginBottom: 8 }}>{mpError}</p>}
             {mpLink ? (
               <div>
