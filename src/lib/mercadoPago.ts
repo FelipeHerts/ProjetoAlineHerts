@@ -71,7 +71,11 @@ export async function checkMPPaymentByPreferenceId(
   const response = await fetch(`https://api.mercadopago.com/v1/payments/search?preference_id=${preferenceId}`, {
     headers: { 'Authorization': `Bearer ${accessToken}` },
   });
-  if (!response.ok) throw new Error('Erro ao buscar pagamentos');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("MP Search API Error:", errorText);
+    throw new Error(`Erro ao buscar pagamentos: ${response.status} - ${errorText}`);
+  }
   const data = await response.json();
   const results = data.results || [];
   // Se houver algum pagamento aprovado para essa preferência

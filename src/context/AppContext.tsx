@@ -9,6 +9,13 @@ interface AppContextType {
   setSearchQuery: (q: string) => void;
 }
 
+// Credenciais puxadas do .env (jamais ficam visíveis ao usuário final)
+const ENV_CREDENTIALS = {
+  mp_access_token: import.meta.env.VITE_MP_ACCESS_TOKEN || undefined,
+  mp_public_key: import.meta.env.VITE_MP_PUBLIC_KEY || undefined,
+  google_calendar_id: import.meta.env.VITE_GOOGLE_CALENDAR_ID || undefined,
+};
+
 const defaultSettings: Settings = {
   default_session_duration: 50,
   default_session_value: 200,
@@ -16,6 +23,8 @@ const defaultSettings: Settings = {
   clinic_name: 'Clínica de Psicanálise',
   analyst_name: 'Aline Herts',
   analyst_crp: '',
+  // Injeta credenciais do .env já nos padrões
+  ...ENV_CREDENTIALS,
 };
 
 const AppContext = createContext<AppContextType>({
@@ -32,12 +41,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem('clinic_settings');
     if (saved) {
-      try { setSettings({ ...defaultSettings, ...JSON.parse(saved) }); } catch {}
+      try {
+        // As credenciais do .env sempre têm prioridade sobre o localStorage
+        setSettings({ ...defaultSettings, ...JSON.parse(saved), ...ENV_CREDENTIALS });
+      } catch {}
     }
   }, []);
 
   const updateSettings = (s: Partial<Settings>) => {
-    const updated = { ...settings, ...s };
+    // Garante que as credenciais do .env não sejam sobrescritas ao salvar
+    const updated = { ...settings, ...s, ...ENV_CREDENTIALS };
     setSettings(updated);
     localStorage.setItem('clinic_settings', JSON.stringify(updated));
   };
