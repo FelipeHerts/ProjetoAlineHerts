@@ -182,6 +182,9 @@ export default function Configuracoes() {
 
       </div>
 
+      <div style={{ textAlign: 'center', marginTop: '40px', paddingBottom: '20px', color: 'var(--text-muted)', fontSize: '13px' }}>
+        Desenvolvido por Felipe Hertz.
+      </div>
     </div>
   );
 }
