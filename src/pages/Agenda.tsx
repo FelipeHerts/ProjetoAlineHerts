@@ -39,10 +39,15 @@ export default function Agenda() {
         const localSessions = [...sessions];
         
         for (const event of events) {
-          const isConsultaOnline = event.summary?.toLowerCase().includes('consulta online') || 
-                                   (event.description && event.description.includes('calendar.app.google'));
+          const isTherapyEvent = 
+            event.summary?.toLowerCase().includes('consulta online') || 
+            event.summary?.toLowerCase().includes('zenklub') ||
+            (event.description && (
+              event.description.includes('calendar.app.google') || 
+              event.description.toLowerCase().includes('zenklub')
+            ));
           
-          if (isConsultaOnline) {
+          if (isTherapyEvent) {
             const sessionExists = localSessions.some(s => s.google_event_id === event.id);
             if (!sessionExists) {
               // Limpar HTML da descrição (incluindo entidades HTML)
@@ -62,43 +67,51 @@ export default function Agenda() {
               // Log para debug
               console.log('[Google Sync] Descrição limpa:', cleanDesc);
 
-              const extractField = (label: string): string | undefined => {
-                const regex = new RegExp(
-                  `(?:^|\\n)\\s*${label}\\s*:?\\s*([^\\n]+)`,
-                  'im'
-                );
-                const match = cleanDesc.match(regex);
-                const val = match ? match[1].trim() : undefined;
-                // Rejeitar valores que são só pontuação/espaços
-                if (!val || /^[.\-–—\s]+$/.test(val)) return undefined;
-                return val;
+              const extractField = (labels: string[]): string | undefined => {
+                for (const label of labels) {
+                  // Regex que procura o label seguido de opcional : ou - e captura o resto da linha
+                  const regex = new RegExp(
+                    `(?:^|\\n)\\s*${label}\\s*[:\\-–—]?\\s*([^\\n]+)`,
+                    'im'
+                  );
+                  const match = cleanDesc.match(regex);
+                  const val = match ? match[1].trim() : undefined;
+                  // Rejeitar valores que são só pontuação/espaços
+                  if (val && !/^[.\-–—\s]+$/.test(val)) return val;
+                }
+                return undefined;
               };
 
-              const extName = extractField('Reservado por') || extractField('Nome') || extractField('Nome completo');
+              const extName = extractField(['Reservado por', 'Nome completo', 'Nome', 'Client name', 'Paciente']);
               
-              // E-mail — várias formas que o Google usa
-              const extEmailRaw = extractField('E-mail') 
-                || extractField('Email') 
-                || extractField('Endere.o de e-mail')
-                || extractField('Endereço de e-mail')
-                || extractField('Seu e-mail');
+              // E-mail — várias formas que o Google/Zenklub usa
+              const extEmailRaw = extractField([
+                'Endereço de e-mail', 'Endere.o de e-mail', 'Seu e-mail', 'E-mail do cliente', 
+                'Client email', 'E-mail', 'Email'
+              ]);
               // Validar formato de e-mail básico
               const extEmail = extEmailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extEmailRaw) ? extEmailRaw : undefined;
 
               // Telefone — várias formas
-              const extPhoneRaw = extractField('Telefone') 
-                || extractField('Celular') 
-                || extractField('N.mero de telefone')
-                || extractField('Número de telefone')
-                || extractField('WhatsApp');
+              const extPhoneRaw = extractField([
+                'Número de telefone', 'N.mero de telefone', 'Phone number', 'WhatsApp', 
+                'Telefone', 'Celular', 'Phone', 'Contato'
+              ]);
               // Validar: deve ter pelo menos 8 dígitos
               const extPhone = extPhoneRaw && /\d{8}/.test(extPhoneRaw.replace(/\D/g, '')) ? extPhoneRaw : undefined;
 
-              const extCpf = extractField('CPF');
+              const extCpf = extractField(['CPF', 'Documento']);
+              
+              const extBirthDate = extractField(['Data de Nascimento', 'Nascimento', 'DN', 'Birth date', 'Nasc']);
 
-              console.log('[Google Sync] Dados extraídos:', { extName, extEmail, extPhone, extCpf });
+              console.log('[Google Sync] Dados extraídos:', { extName, extEmail, extPhone, extCpf, extBirthDate });
 
-              let fallbackName = event.summary.replace(/consulta online/i, '').replace(/[-:]/g, '').trim();
+              let fallbackName = event.summary
+                .replace(/consulta online/i, '')
+                .replace(/zenklub/i, '')
+                .replace(/[-:]/g, '')
+                .trim();
+              
               fallbackName = fallbackName || 'Paciente (Sem Nome)';
               const patientName = extName || fallbackName.split(' e ')[0].split(' and ')[0].trim();
               
@@ -110,6 +123,7 @@ export default function Agenda() {
                 if (extEmail) newPatientData.email = extEmail;
                 if (extPhone) newPatientData.phone = extPhone;
                 if (extCpf) newPatientData.cpf = extCpf;
+                if (extBirthDate) newPatientData.birth_date = extBirthDate;
 
                 patientToUse = await createPatient(newPatientData);
                 if (patientToUse) {
@@ -118,10 +132,13 @@ export default function Agenda() {
               } else {
                 // Paciente já existe — atualizar campos faltantes ou incorretos
                 const updates: Record<string, string> = {};
+                
                 const emailInvalid = !patientToUse.email || /^[.\-–—\s]+$/.test(patientToUse.email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientToUse.email);
                 if (extEmail && emailInvalid) updates.email = extEmail;
+                
                 if (extPhone && !patientToUse.phone) updates.phone = extPhone;
                 if (extCpf && !patientToUse.cpf) updates.cpf = extCpf;
+                if (extBirthDate && !patientToUse.birth_date) updates.birth_date = extBirthDate;
 
                 if (Object.keys(updates).length > 0) {
                   try {
